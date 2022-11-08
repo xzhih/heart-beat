@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>❤️</title>
+    <style>
+      html,
+      body {
+        height: 100%;
+        margin: 0;
+      }
+      canvas {
+        width: 100%;
+        height: 100%;
+        display: block;
+      }
+    </style>
+    <script src="https://lf9-cdn-tos.bytecdntp.com/cdn/expire-1-M/three.js/r100/three.min.js"></script>
+  </head>
+  <body>
+    <script>
+      let backguandColor = 0x000000; //背景颜色 hex色值
+      let heartColor = "vec3(1,0,0)"; //心形颜色 GLSL vec3色值 紫色: vec3(0.627,0,0.627)
+      let heartEdgeColor = "vec3(1,1,1)"; //心形边缘颜色 GLSL vec3色值 可以在这里转换 https://airtightinteractive.com/util/hex-to-glsl/
+      let particleSize = 4; // 粒子大小
+      let particleLoose = 100; // 稀疏程度 值越大粒子越少
+      let particleSpeed = 30; // 粒子运动速度
+      let rotationSpeedX = 0; // 爱心X旋转速度(上下旋转) 值越大旋转越快 负数为反向旋转 0为不旋转
+      let rotationSpeedY = 1; // 爱心Y旋转速度(左右旋转)
+      let heartEdgeSize = 2; // 爱心边缘颜色范围大小
+
+      let pixelRatio = 2; // 如果觉得卡就调小点
+
+      let scene = new THREE.Scene();
+      let camera = new THREE.PerspectiveCamera(50, 1, 1, 1000);
+      camera.position.set(0, 0, 100).setLength(165);
+      let renderer = new THREE.WebGLRenderer({
+        antialias: true,
+      });
+      renderer.setClearColor(backguandColor);
+      renderer.setPixelRatio(pixelRatio);
+
+      let canvas = renderer.domElement;
+      document.body.appendChild(canvas);
+
+      let xSize = 50;
+      let ySize = 50;
+      let zSize = 50;
+      let n = xSize * ySize * zSize;
+
+      let positions = [];
+      let speed = [];
+      let sign = [];
+
+      for (let i = 0; i < n; i++) {
+        positions.push(
+          new THREE.Vector3(
+            Math.random(),
+            Math.random(),
+            Math.random()
+          ).multiplyScalar(particleLoose)
+        );
+        speed.push(Math.random() * particleSpeed);
+      }
+
+      let pointsGeometry = new THREE.BufferGeometry().setFromPoints(positions);
+      pointsGeometry.addAttribute(
+        "speed",
+        new THREE.BufferAttribute(new Float32Array(speed), 1)
+      );
+      pointsGeometry.center();
+
+      let points = new THREE.Points(
+        pointsGeometry,
+        new THREE.ShaderMaterial({
+          uniforms: {
+            time: {
+              value: 0,
+            },
+            size: {
+              value: particleSize,
+            },
+          },
+          vertexShader: `
+            #define PI 3.1415926  
+            uniform float time;
+            uniform float size;
+            attribute float speed;
+            varying vec3 vC;
+            varying float vDiscard;
+            float sdSphere( vec3 p, float s ) {
+              return length(p)-s;
+            }
+            
+            void main() {
+              vec3 pos = position;
+              float start = position.y - -50.;
+              float way = speed * time;
+              float totalWay = start + way;
+              float modulo = mod(totalWay, 100.);
+              pos.y = modulo - 50.;
+              vec3 vPos = pos;
+              vec3 h = vPos / 2.5;
+              h.y = 4. + 1.2 * h.y - abs(h.x) * sqrt(max((20. - abs(h.x)) / 15., 0.));
+              h.z = h.z * (2. - h.y / 15.);
+              float r = 15. + 3. * pow(0.5 + 0.5 * sin(2. * PI * time + h.y / 25.), 4.);
+              float heart = sdSphere(h, r);        
+              vec3 c = ${heartColor};
+              if (heart > -0.${heartEdgeSize}) c = ${heartEdgeColor};
+              vC = c;
+              bool boolDiscard = heart > 0.0 || heart < -2.;
+              vDiscard = boolDiscard == true ? 1. : 0.;
+              vec4 mvPosition = modelViewMatrix * vec4( pos, 1.0 );
+              gl_PointSize = size * ( 300.0 / -mvPosition.z );
+              gl_Position = projectionMatrix * mvPosition;
+            }
+          `,
+          fragmentShader: `
+            varying vec3 vC;
+            varying float vDiscard;
+            void main() {
+              if ( vDiscard > 0.5 ) {discard;}
+              if (length(gl_PointCoord - 0.5) > 0.5) {discard;}
+              gl_FragColor = vec4( vC, 1.0);
+            }
+          `,
+        })
+      );
+      scene.add(points);
+
+      let clock = new THREE.Clock();
+      let time = 0;
+
+      renderer.setAnimationLoop(() => {
+        if (resize(renderer)) {
+          camera.aspect = canvas.clientWidth / canvas.clientHeight;
+          camera.updateProjectionMatrix();
+        }
+        time += clock.getDelta();
+        if (rotationSpeedX) {
+          points.rotation.x = time * rotationSpeedX;
+        }
+        if (rotationSpeedY) {
+          points.rotation.y = time * rotationSpeedY;
+        }
+        points.material.uniforms.time.value = time;
+        renderer.render(scene, camera);
+      });
+
+      function resize(renderer) {
+        const canvas = renderer.domElement;
+        const width = canvas.clientWidth;
+        const height = canvas.clientHeight;
+        const needResize = canvas.width !== width || canvas.height !== height;
+        if (needResize) {
+          renderer.setSize(width, height, false);
+        }
+        return needResize;
+      }
+    </script>
+  </body>
+</html>
