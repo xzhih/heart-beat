@@ -22,8 +22,8 @@
       let backguandColor = 0x000000; //背景颜色 hex色值
       let heartColor = "vec3(1,0,0)"; //心形颜色 GLSL vec3色值 紫色: vec3(0.627,0,0.627)
       let heartEdgeColor = "vec3(1,1,1)"; //心形边缘颜色 GLSL vec3色值 可以在这里转换 https://airtightinteractive.com/util/hex-to-glsl/
-      let particleSize = 4; // 粒子大小
-      let particleLoose = 100; // 稀疏程度 值越大粒子越少
+      let particleSize = 3; // 粒子大小
+      let particleLoose = 60; // 粒子数量
       let particleSpeed = 30; // 粒子运动速度
       let rotationSpeedX = 0; // 爱心X旋转速度(上下旋转) 值越大旋转越快 负数为反向旋转 0为不旋转
       let rotationSpeedY = 1; // 爱心Y旋转速度(左右旋转)
@@ -43,9 +43,9 @@
       let canvas = renderer.domElement;
       document.body.appendChild(canvas);
 
-      let xSize = 50;
-      let ySize = 50;
-      let zSize = 50;
+      let xSize = particleLoose;
+      let ySize = particleLoose;
+      let zSize = particleLoose;
       let n = xSize * ySize * zSize;
 
       let positions = [];
@@ -58,7 +58,7 @@
             Math.random(),
             Math.random(),
             Math.random()
-          ).multiplyScalar(particleLoose)
+          ).multiplyScalar(100)
         );
         speed.push(Math.random() * particleSpeed);
       }
